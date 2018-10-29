@@ -1,0 +1,35 @@
+module storevalues (
+    input clk,  // clock
+    // Select for A and B
+    input selA,
+    input selB,
+    // Input switches on io board mapping to digits
+    input switches[16],
+    output outA[16],
+    output outB[16]
+  ) {
+
+  .clk(clk){
+    edge_detector detectA(#RISE(1), #FALL(0));
+    edge_detector detectB(#RISE(1), #FALL(0));
+    // condition the buttons so that we have a steady signal
+    button_conditioner buttonA(.in(selA)); 
+    button_conditioner buttonB(.in(selB));
+    // Define two d-latch flip-flops for remembering A and B separately.
+    dff memoryA[16];
+    dff memoryB[16];
+  }
+  
+  always {
+  // we map the edge detection to the buttons being pressed down; 
+    detectA.in = buttonA.out;
+    detectB.in = buttonB.out;
+    if(detectA.out){
+      memoryA.d = switches;
+    }
+    if(detectB.out){
+      memoryB.d = switches;
+    }
+    
+  }
+}
