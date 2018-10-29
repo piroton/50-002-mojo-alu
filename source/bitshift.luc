@@ -1,0 +1,9 @@
+module bitshift (
+    opcode[6];
+    
+  ) {
+
+  always {
+    out = 0;
+  }
+}
