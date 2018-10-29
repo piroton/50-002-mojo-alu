@@ -1,9 +1,19 @@
 module bitshift (
-    opcode[6];
-    
+    input opcode[6],
+    input a[16],
+    input b[16],
+    output z[16]
   ) {
 
   always {
-    out = 0;
+  case(opcode[1:0]){
+    b00: // shift left
+      z = a << b[4:0];
+    b01: // shift right
+      z = a >> b[4:0];
+    b11: // shift right arithmetic
+      z = $signed(a) >>> b[4:0];
+    default:
+      z = a;
   }
 }
