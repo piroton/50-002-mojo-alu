@@ -7,15 +7,16 @@ module adder (
     output zero,
     output ver,
     output neg,
-    output outsum[16]
+    output outsum[16],
+    output addover
   ) {
   
   sig actualsum[17];
   sig negative[16];
   
   always {
-  negative = a-b;
-  case(opcode[1:0]){
+    negative = a-b;
+    case(opcode[1:0]){
       // opcode value controls operation conducted
       b00: // add
         actualsum = a+b;
@@ -31,8 +32,9 @@ module adder (
     
     // map outputs
     outsum = actualsum[15:0];
-    ver = (a[15] & b[15] & ~actualsum[16]) | (~a[15]&~b[15]&actualsum[16]);
+    ver = (a[15] & ~b[15] & (~negative[15])) | ((~a[15])&(b[15])&negative[15]);
     zero = ~|negative;
     neg = actualsum[16];
+    addover = (a[15] & b[15] & (~actualsum[15])) | ((~a[15])&(~b[15])&actualsum[15]);
   }
 }
