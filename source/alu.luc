@@ -37,23 +37,25 @@ module alu (
     bits.b = b;
     bits.opcode = opcode;
     
+    overflow = addr.addover;
+    
     case(opcode[5:4]){
-      2b00:
+      2b00:  // adder circuit
         out = addr.outsum;
         z = addr.zero;
         v = addr.ver;
         n = addr.neg;
-      2b01:
+      2b01:  // boolean circuit
         out = bool.actualbool;
         z = 0;
         v = 0;
         n = 0;
-      2b10:
+      2b10:  // bitwise operator circuit
         out = bits.z;
         z = 0;
         v = 0;
         n = 0;
-      2b11:
+      2b11:  // comparator circuit
         out = comp.comparator;
         z = 0;
         v = 0;
@@ -63,7 +65,6 @@ module alu (
         z = 0;
         v = 0;
         n = 0;
-      }
-    overflow = addr.addover
+    }
   }
 }

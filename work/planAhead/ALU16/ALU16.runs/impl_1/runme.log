@@ -1,0 +1,4 @@
+
+*** Running ngdbuild
+    with args -intstyle ise -p xc6slx9tqg144-2 -dd _ngo -uc mojo_top_0.ucf mojo_top_0.edf
+
