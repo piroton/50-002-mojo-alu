@@ -2,10 +2,12 @@
 <project name="ALU16" board="Mojo V3" language="Lucid">
   <files>
     <src>bitshift.luc</src>
+    <src>multi_seven_se.luc</src>
     <src>storevalues.luc</src>
     <src top="true">mojo_top.luc</src>
     <src>addsub.luc</src>
     <src>alu.luc</src>
+    <src>seven_seg.luc</src>
     <src>comparator.luc</src>
     <src>bool.luc</src>
     <ucf lib="true">mojo.ucf</ucf>
