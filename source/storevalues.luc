@@ -5,6 +5,8 @@ module storevalues (
     input selB,
     // Input switches on io board mapping to digits
     input switches[16],
+    
+    // outputs a and b
     output outA[16],
     output outB[16]
   ) {
@@ -30,6 +32,8 @@ module storevalues (
     if(detectB.out){
       memoryB.d = switches;
     }
-    
+    // Assign the outputs of the memory bank to the outputs of the D-flipflop of A and B
+    outA = memoryA.q;
+    outB = memoryB.q;
   }
 }

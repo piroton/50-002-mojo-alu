@@ -2,6 +2,7 @@
 <project name="ALU16" board="Mojo V3" language="Lucid">
   <files>
     <src>storevalues.luc</src>
+    <src>addsub.luc</src>
     <src top="true">mojo_top.luc</src>
     <ucf lib="true">io_shield.ucf</ucf>
     <ucf lib="true">mojo.ucf</ucf>
