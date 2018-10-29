@@ -1,10 +1,17 @@
 module alu (
-    input clk,  // clock
-    input rst,  // reset
-    output out
+    input a[16],  // first input
+    input b[16],  // second input
+    input alufn[6],  // alufn 6 bits input
+    
+    output out[16],  // 16 bit output
+    output z,
+    output v,
+    output n,
+    output overflow
+    
   ) {
 
   always {
-    out = 0;
+    // linking a and b from inputs into a and b of submodules
   }
 }
