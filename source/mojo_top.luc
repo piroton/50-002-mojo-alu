@@ -26,6 +26,8 @@ module mojo_top (
     reset_conditioner reset_cond;
   }
   
+  
+  
   always {
     reset_cond.in = ~rst_n; // input raw inverted reset signal
     rst = reset_cond.out;   // conditioned reset
