@@ -1,7 +1,7 @@
 module comparator (
-    // input: alufn[6], z, n, v
+    // input: opcode[6], z, n, v
     // output: out
-    input alufn[6],  // alufn signal, determine comparison modes
+    input opcode[6],  // alufn signal, determine comparison modes
     input z,  // from adder
     input n,  // from adder
     input v,  // from adder
@@ -9,8 +9,8 @@ module comparator (
   ) {
 
   always {
-    case(alufn[2:1]){
-      2b00:  // unused input of alufn[2:1], output 0
+    case(opcode[2:1]){
+      2b00:  // unused input of opcode[2:1], output 0
         comparator = 0;
       2b01:  // if looking for equals comparison, output z
         comparator = z;

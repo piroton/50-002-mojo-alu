@@ -6,16 +6,17 @@ module bitshift (
   ) {
 
   always {
-  case(opcode[1:0]){
-    b00: // shift left
-      z = a << b[4:0];
-    b01: // shift right
-      z = a >> b[4:0];
-    b11: // shift right arithmetic
-      z = $signed(a) >>> b[4:0];
-    b10: // weird left bitshift
-      z = $signed(a) <<< b[4:0];
-    default:
-      z = a;
+    case(opcode[1:0]){
+      b00: // shift left
+        z = a << b[4:0];
+      b01: // shift right
+        z = a >> b[4:0];
+      b11: // shift right arithmetic
+        z = $signed(a) >>> b[4:0];
+      b10: // weird left bitshift
+        z = $signed(a) <<< b[4:0];
+      default:
+        z = a;
+    }
   }
 }

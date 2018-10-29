@@ -1,7 +1,7 @@
 module alu (
     input a[16],  // first input
     input b[16],  // second input
-    input alufn[6],  // alufn 6 bits input
+    input opcode[6],  // alufn 6 bits input
     
     output out[16],  // 16 bit output
     output z,
@@ -11,7 +11,50 @@ module alu (
     
   ) {
 
+  // instantiate all components
+  bool bool;
+  adder addr;
+  comparator comp;
+  bitshift bits;
+  
+  
   always {
     // linking a and b from inputs into a and b of submodules
+    bool.a = a;
+    bool.b = b;
+    bool.opcode = opcode;
+    
+    addr.a = a;
+    addr.b = b;
+    addr.opcode = opcode;
+    
+    comp.z = addr.zero;
+    comp.v = addr.ver;
+    comp.n = addr.neg;
+    comp.opcode = opcode;
+    
+    bits.a = a;
+    bits.b = b;
+    bits.opcode = opcode;
+    
+    case(opcode[5:4]){
+      2b00:
+        out = addr.outsum;
+        z = addr.zero;
+        v = addr.ver;
+        n = addr.neg;
+      2b01:
+        out = bool.actualbool;
+      2b10:
+        out = bits.z;
+      2b11:
+        out = comp.comparator;
+      default:
+        out = 0;
+        z = 0;
+        v = 0;
+        n = 0;
+      }
+    
   }
 }
