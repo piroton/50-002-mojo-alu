@@ -19,16 +19,43 @@ module mojo_top (
   ) {
   
   sig rst;                  // reset signal
+  sig testtype;             // testtype == 1 for autotest, testtype == 0 for manualtest
   
   .clk(clk) {
     // The reset conditioner is used to synchronize the reset signal to the FPGA
     // clock. This ensures the entire FPGA comes out of reset at the same time.
     reset_conditioner reset_cond;
+    
+    // make sure inputs to the up, down and center buttons do not run continuously
+    edge_detector detectup(#RISE(1), #FALL(0));
+    edge_detector detectdown(#RISE(1), #FALL(0));
+    edge_detector detectmid(#RISE(1), #FALL(0));
+
+    button_conditioner buttonup(.in(io_button[0]));
+    button_conditioner buttondown(.in(io_button[2]));
+    button_conditioner buttonmid(.in(io_button[1]));
+    
+    .rst(rst){
+      multi_seven_seg seg;
+    }
+    
   }
   
+  // instantiate manualtest, left and right buttons to switch between states, store mode or show mode determined by second leftmost switch
+  manualtest manualtest(.clk(clk), .rst(rst), .buttonA(io_button[0]), .buttonB(io_button[2]), .store_or_show(io_dip[2][6]), .switchpart1(io_dip[1][7:0]), .switchpart0(io_dip[0][7:0]), .next(io_button[4]), .previous(io_button[3]));
   
+  // instantiate autotest, second leftmost switch to pause/unpause autotest, center button to start test
+  autotest autotest(.clk(clk), .rst(rst), .pause(io_dip[2][6]), .begintest(io_button[1]));
+  
+  fsm manualstate(.clk(clk), .rst(rst)) = {A, B, OUT}; // states for manualtest
+  fsm autostate(.clk(clk), .rst(rst)) = {BLANK, SHOWA, SHOWB, OUT}; // states for autotest
   
   always {
+    
+    detectup.in = buttonup.out;
+    detectdown.in = buttondown.out;
+    detectmid.in = buttonmid.out;
+    
     reset_cond.in = ~rst_n; // input raw inverted reset signal
     rst = reset_cond.out;   // conditioned reset
     
@@ -40,5 +67,181 @@ module mojo_top (
     io_led = 3x{{8h00}};    // turn LEDs off
     io_seg = 8hff;          // turn segments off
     io_sel = 4hf;           // select no digits
+    
+    seg.values = {4d0, 4d0, 4d0, 4d0}; // turn segments off
+    
+    io_seg = ~seg.seg; // connect segments to the driver
+    io_sel = ~seg.sel; // connect digits to the driver
+    
+    testtype = io_dip[2][7]; // set leftmost switch to switch between auto and manual tests
+    
+    if (testtype == 1){
+      
+      // run auto test
+      
+      seg.values = autotest.display; // display autotest results in 7-seg LED display, XXYY format, XX is the test case, YY == 44 for fail case, YY == 88 for success case
+      io_led[2][5:0] = autotest.opcode; // show opcode in leftmost row of LEDs
+      
+      case(autostate.q){
+        // pressing the button that corresponds to SHOWA, SHOWB or OUT will display the 16-bit digits as LED lights
+        // pressing the same button again will turn off the display and revert it back to the BLANK state
+        
+        
+        // only opcode and 7-seg LEDs shown on Mojo 
+        autostate.BLANK:
+          
+          io_led[1][7:0] = 6b0;
+          io_led[0][7:0] = 6b0;
+          
+          if (!(detectup.out == 1 & detectdown.out == 1) & !(detectup.out == 1 & detectmid.out == 1) & !(detectmid.out == 1 & detectdown.out == 1)){
+            if (detectdown.out == 1){
+              autostate.d = autostate.SHOWB;
+            }else if (detectup.out == 1){
+              autostate.d = autostate.SHOWA;
+            }else if (detectmid.out == 1){
+              autostate.d = autostate.OUT;
+              }
+          }
+        
+        // opcode, A and 7-seg LEDs shown on Mojo 
+        autostate.SHOWA:
+          
+          io_led[1][7:0] = autotest.getA[15:8];
+          io_led[0][7:0] = autotest.getA[7:0];
+          
+          if (!(detectup.out == 1 & detectdown.out == 1) & !(detectup.out == 1 & detectmid.out == 1) & !(detectmid.out == 1 & detectdown.out == 1)){
+            if (detectdown.out == 1){
+              autostate.d = autostate.SHOWB;
+            }else if (detectup.out == 1){
+              autostate.d = autostate.BLANK;
+            }else if (detectmid.out == 1){
+              autostate.d = autostate.OUT;
+              }
+          }
+        
+        // opcode, B and 7-seg LEDs shown on Mojo 
+        autostate.SHOWB:
+          
+          io_led[1][7:0] = autotest.getB[15:8];
+          io_led[0][7:0] = autotest.getB[7:0];
+
+          if (!(detectup.out == 1 & detectdown.out == 1) & !(detectup.out == 1 & detectmid.out == 1) & !(detectmid.out == 1 & detectdown.out == 1)){
+            if (detectdown.out == 1){
+              autostate.d = autostate.BLANK;
+            }else if (detectup.out == 1){
+              autostate.d = autostate.SHOWA;
+            }else if (detectmid.out == 1){
+              autostate.d = autostate.OUT;
+              }
+          }
+        
+        // opcode, output and 7-seg LEDs shown on Mojo 
+        autostate.OUT:
+          
+          io_led[1][7:0] = autotest.out[15:8];
+          io_led[0][7:0] = autotest.out[7:0];
+
+          if (!(detectup.out == 1 & detectdown.out == 1) & !(detectup.out == 1 & detectmid.out == 1) & !(detectmid.out == 1 & detectdown.out == 1)){
+            if (detectdown.out == 1){
+              autostate.d = autostate.SHOWB;
+            }else if (detectup.out == 1){
+              autostate.d = autostate.SHOWA;
+            }else if (detectmid.out == 1){
+              autostate.d = autostate.BLANK;
+              }
+          }
+          
+        default:
+          
+          io_led[1][7:0] = 6b0;
+          io_led[0][7:0] = 6b0;
+          
+          if (!(detectup.out == 1 & detectdown.out == 1) & !(detectup.out == 1 & detectmid.out == 1) & !(detectmid.out == 1 & detectdown.out == 1)){
+            if (detectdown.out == 1){
+              autostate.d = autostate.SHOWB;
+            }else if (detectup.out == 1){
+              autostate.d = autostate.SHOWA;
+            }else if (detectmid.out == 1){
+              autostate.d = autostate.OUT;
+              }
+          }
+      }
+    }
+    else{
+      
+      // run manual test
+      
+      seg.values = manualtest.display; // display autotest results in 7-seg LED display, XX00 format, XX is the test case, no results as outputs are validated manually
+      io_led[2][5:0] = manualtest.opcode; // show opcode in leftmost row of LEDs
+      
+      case(manualstate.q){
+        // up button for A, down button for B, center button for output
+        
+        // store or show A
+        manualstate.A:
+          
+          io_led[1][7:0] = manualtest.getA[15:8];
+          io_led[0][7:0] = manualtest.getA[7:0];
+          
+          if (!(io_button[0] == 1 & io_button[2] == 1) & !(io_button[0] == 1 & io_button[1] == 1) & !(io_button[1] == 1 & io_button[2] == 1)){
+              if (io_button[2] == 1){
+              manualstate.d = manualstate.B;
+            }else if (io_button[1] == 1){
+              manualstate.d = manualstate.OUT;
+            }else if (io_button[0] == 1){
+              manualstate.d = manualstate.A;
+              }
+          }
+         
+         
+        // store or show B
+        manualstate.B:
+          
+          io_led[1][7:0] = manualtest.getB[15:8];
+          io_led[0][7:0] = manualtest.getB[7:0];
+          
+          if (!(io_button[0] == 1 & io_button[2] == 1) & !(io_button[0] == 1 & io_button[1] == 1) & !(io_button[1] == 1 & io_button[2] == 1)){
+              if (io_button[2] == 1){
+              manualstate.d = manualstate.B;
+            }else if (io_button[1] == 1){
+              manualstate.d = manualstate.OUT;
+            }else if (io_button[0] == 1){
+              manualstate.d = manualstate.A;
+              }
+          }
+          
+        // show output
+        manualstate.OUT:
+          
+          io_led[1][7:0] = manualtest.out[15:8];
+          io_led[0][7:0] = manualtest.out[7:0];
+          
+          if (!(io_button[0] == 1 & io_button[2] == 1) & !(io_button[0] == 1 & io_button[1] == 1) & !(io_button[1] == 1 & io_button[2] == 1)){
+              if (io_button[2] == 1){
+              manualstate.d = manualstate.B;
+            }else if (io_button[1] == 1){
+              manualstate.d = manualstate.OUT;
+            }else if (io_button[0] == 1){
+              manualstate.d = manualstate.A;
+              }
+          }
+          
+        default:
+          
+          io_led[1][7:0] = 6b0;
+          io_led[0][7:0] = 6b0;
+          
+          if (!(io_button[0] == 1 & io_button[2] == 1) & !(io_button[0] == 1 & io_button[1] == 1) & !(io_button[1] == 1 & io_button[2] == 1)){
+              if (io_button[2] == 1){
+              manualstate.d = manualstate.B;
+            }else if (io_button[1] == 1){
+              manualstate.d = manualstate.OUT;
+            }else if (io_button[0] == 1){
+              manualstate.d = manualstate.A;
+              }
+          }
+      }
+      
+      }
   }
 }

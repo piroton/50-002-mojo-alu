@@ -8,7 +8,7 @@ module adder (
     output ver,
     output neg,
     output outsum[16],
-    output addover
+    output overflow
   ) {
   
   sig actualsum[17];
@@ -35,6 +35,6 @@ module adder (
     ver = (a[15] & ~b[15] & (~negative[15])) | ((~a[15])&(b[15])&negative[15]);
     zero = ~|negative;
     neg = actualsum[16];
-    addover = (a[15] & b[15] & (~actualsum[15])) | ((~a[15])&(~b[15])&actualsum[15]);
+    overflow = (a[15] & b[15] & (~actualsum[15])) | ((~a[15])&(~b[15])&actualsum[15]);
   }
 }

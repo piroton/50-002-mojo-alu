@@ -18,6 +18,12 @@ module bool (
         actualbool = a ^ b;
       b1010: // "A"
         actualbool = a;
+      b1111: // NOR
+        actualbool = ~(a | b);
+      b1001: // NAND
+        actualbool = ~(a & b);
+      b0111: // XNOR
+        actualbool = ~(a ^ b);
       default:
         actualbool = a;
   }

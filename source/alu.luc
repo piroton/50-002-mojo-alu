@@ -7,8 +7,10 @@ module alu (
     output z,
     output v,
     output n,
-    output overflow
-    
+    output overflow,
+    output getA[16],
+    output getB[16],
+    output getOpcode[6]
   ) {
 
   // instantiate all components
@@ -19,6 +21,11 @@ module alu (
   
   
   always {
+    
+    getA = a;
+    getB = b;
+    getOpcode = opcode;
+    
     // linking a and b from inputs into a and b of submodules
     bool.a = a;
     bool.b = b;
@@ -37,7 +44,7 @@ module alu (
     bits.b = b;
     bits.opcode = opcode;
     
-    overflow = addr.addover;
+    overflow = addr.overflow;
     
     case(opcode[5:4]){
       2b00:  // adder circuit

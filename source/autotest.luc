@@ -1,0 +1,322 @@
+module autotest (
+    input clk,  // clock
+    input rst,  // reset
+    input pause, // pause to allow user to check A, B and output
+    input begintest, // begin the test
+    output display[4][4], // display for 7-seg LEDs
+    output opcode[6], // opcode
+    output getA[16], // A
+    output getB[16], // B
+    output out[16] // ALU output
+  ) {
+  
+  
+  // instantiate the alu to check its output against test case
+  const CLKSPEED = 25; // delay between state changes for user to have a better look
+  dff counter[CLKSPEED](.clk(clk), .rst(rst));
+  
+  alu alu16; // instantiate alu
+  
+  .clk(counter.q[CLKSPEED-1]){
+    fsm state(.rst(rst)) = {START, ADD, ADD_OVER, SUB, MUL, MOD, AND, OR, XOR, A, NOR, NAND, XNOR, SHL, SHR, SRA, CMPEQ, CMPLT, CMPLE};
+  }
+  
+  sig cmpleout1[16];
+  sig cmpleout2[16];
+  
+  always {
+    
+    counter.d = counter.q + 1;
+    
+    case(state.q){
+      
+      state.START:
+        alu16.opcode=6b0;
+        display = {4d0, 4d0, 4d8, 4d4};
+        alu16.a = 16b0;
+        alu16.b = 16b0;
+        if (begintest == 1){
+          state.d = state.ADD;
+          }
+        
+      // adder circuit
+      // ADD test case: 01YY, YY == 44 for fail case, YY == 88 for success case
+      state.ADD:
+        alu16.opcode=6b000000;
+        alu16.a = 16b11;
+        alu16.b = 16b10;
+        if (alu16.out == 16b101){
+          display = {4d0, 4d1, 4d8, 4d8};
+        }
+        else{
+          display = {4d0, 4d1, 4d4, 4d4};
+        }
+        if (pause == 0){
+        state.d = state.ADD_OVER;
+        }
+      
+      // ADD_OVER test case: 02YY, YY == 44 for fail case, YY == 88 for success case
+      state.ADD_OVER:
+        alu16.opcode=6b000000;
+        alu16.a = 16b0100000000000000;
+        alu16.b = 16b0100000000000000;
+        if (alu16.overflow == 1){
+          display = {4d0, 4d2, 4d8, 4d8};
+          }else{
+          display = {4d0, 4d2, 4d4, 4d4};
+        }
+        
+        if (pause == 0){
+          state.d = state.SUB;
+          }
+        
+      // SUB test case: 03YY, YY == 44 for fail case, YY == 88 for success case
+      state.SUB:
+        alu16.opcode = 6b000001;
+        alu16.a = 16b110;
+        alu16.b = 16b11;
+        if (alu16.out == 16b11){
+          display = {4d0, 4d3, 4d8, 4d8};
+          }else{
+          display = {4d0, 4d3, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.MUL;
+          }
+      
+      // MUL test case: 04YY, YY == 44 for fail case, YY == 88 for success case
+      state.MUL:
+        alu16.opcode = 6b000010;
+        alu16.a = 16b0000000000000010;
+        alu16.b = 16b0000000000000100;
+        if (alu16.out == 16b0000000000001000){
+          display = {4d0, 4d4, 4d8, 4d8};
+          }else{
+          display = {4d0, 4d4, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.MOD;
+          }
+        
+      // MOD test case: 05YY, YY == 44 for fail case, YY == 88 for success case
+      state.MOD:
+        alu16.opcode = 6b000011;
+        alu16.a = 16b0000000000000111;
+        alu16.b = 16b0000000000000010;
+        if (alu16.out == 16b0000000000000001){
+          display = {4d0, 4d5, 4d8, 4d8};
+        }else{
+          display = {4d0, 4d5, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.AND;
+        }
+        
+      // boolean circuit
+      // AND test case: 06YY, YY == 44 for fail case, YY == 88 for success case
+      state.AND:
+        alu16.opcode = 6b011000;
+        alu16.a = 16b0101;
+        alu16.b = 16b0011;
+        if (alu16.out == 16b0001){
+          display = {4d0, 4d6, 4d8, 4d8};
+          }else{
+          display = {4d0, 4d6, 4d4, 4d4};
+          }
+        if (pause == 0){
+          state.d = state.OR;
+            }
+      
+      // OR test case: 07YY, YY == 44 for fail case, YY == 88 for success case
+      state.OR:
+        alu16.opcode = 6b011110;
+        alu16.a = 16b0101;
+        alu16.b = 16b0011;
+        if (alu16.out == 16b0111){
+          display = {4d0, 4d7, 4d8, 4d8};
+          }else{
+          display = {4d0, 4d7, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.XOR;
+          }
+      
+      // XOR test case: 08YY, YY == 44 for fail case, YY == 88 for success case
+      state.XOR:
+        alu16.opcode = 6b010110;
+        alu16.a = 16b0101;
+        alu16.b = 16b0011;
+        if (alu16.out == 16b0110){
+          display = {4d0, 4d8, 4d8, 4d8};
+          }else{
+          display = {4d0, 4d8, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.A;
+        }
+      
+      // A test case: 09YY, YY == 44 for fail case, YY == 88 for success case
+      state.A:
+        alu16.opcode = 6b011010;
+        alu16.a = 16b0101;
+        alu16.b = 16b0011;
+        if (alu16.out == 16b0101){
+          display = {4d0, 4d9, 4d8, 4d8};
+          }else{
+          display = {4d0, 4d9, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.NOR;
+        }
+      
+      // NOR test case: 10YY, YY == 44 for fail case, YY == 88 for success case
+      state.NOR:
+        alu16.opcode = 6b011111;
+        alu16.a = 16b0101;
+        alu16.b = 16b0011;
+        if (alu16.out == 16b1111111111111000){
+          display = {4d1, 4d0, 4d8, 4d8};
+          }else{
+          display = {4d1, 4d0, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.NAND;
+        }
+      
+      // NAND test case: 11YY, YY == 44 for fail case, YY == 88 for success case
+      state.NAND:
+        alu16.opcode = 6b011001;
+        alu16.a = 16b0101;
+        alu16.b = 16b0011;
+        if (alu16.out == 16b1111111111111110){
+          display = {4d1, 4d1, 4d8, 4d8};
+          }else{
+          display = {4d1, 4d1, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.XNOR;
+        }
+      
+      // XNOR test case: 12YY, YY == 44 for fail case, YY == 88 for success case
+      state.XNOR:
+        alu16.opcode = 6b010111;
+        alu16.a = 16b0101;
+        alu16.b = 16b0011;
+        if (alu16.out == 16b1111111111111001){
+          display = {4d1, 4d2, 4d8, 4d8};
+          }else{
+          display = {4d1, 4d2, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.SHL;
+        }
+      
+      // bitwise operator circuit
+      // SHL test case: 13YY, YY == 44 for fail case, YY == 88 for success case
+      state.SHL:
+        alu16.opcode = 6b100000;
+        alu16.a = 16b1010;
+        alu16.b = 16b111;
+        if (alu16.out == 16b10100000000){
+          display = {4d1, 4d3, 4d8, 4d8};
+        }else{
+          display = {4d1, 4d3, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.SHR;
+        }
+      
+      // SHR test case: 14YY, YY == 44 for fail case, YY == 88 for success case
+      state.SHR:
+        alu16.opcode = 6b100001;
+        alu16.a = 16b10100000000;
+        alu16.b = 16b111;
+        if (alu16.out == 16b1010){
+          display = {4d1, 4d4, 4d8, 4d8};
+        }else{
+          display = {4d1, 4d4, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.SRA;
+        }
+      
+      // SRA test case: 15YY, YY == 44 for fail case, YY == 88 for success case
+      state.SRA:
+        alu16.opcode = 6b100011;
+        alu16.a = 16b10100000000;
+        alu16.b = 16b111;
+        if (alu16.out == 16b1010){
+          display = {4d1, 4d5, 4d8, 4d8};
+        }else{
+          display = {4d1, 4d5, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.CMPEQ;
+        }
+      
+      // comparator circuit
+      // CMPEQ test case: 16YY, YY == 44 for fail case, YY == 88 for success case
+      state.CMPEQ:
+        alu16.opcode = 6b110011;
+        alu16.a = 16b111;
+        alu16.b = 16b111;
+        if (alu16.out == 16b1){
+          display = {4d1, 4d6, 4d8, 4d8};
+        }else{
+          display = {4d1, 4d6, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.CMPLT;
+        }
+      
+      // CMPLT test case: 17YY, YY == 44 for fail case, YY == 88 for success case
+      state.CMPLT:
+        alu16.opcode = 6b110101;
+        alu16.a = 16b100;
+        alu16.b = 16b101;
+        if (alu16.out == 16b1){
+          display = {4d1, 4d7, 4d8, 4d8};
+        }else{
+          display = {4d1, 4d7, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.CMPLE;
+        }
+      
+      // CMPLE test case: 18YY, YY == 44 for fail case, YY == 88 for success case
+      state.CMPLE:
+        alu16.opcode = 6b110101;
+        alu16.a = 16b111;
+        alu16.b = 16b111;
+        cmpleout1 = alu16.out;
+        
+        alu16.opcode = 6b110101;
+        alu16.a = 16b101;
+        alu16.b = 16b111;
+        cmpleout2 = alu16.out;
+        
+        if (cmpleout1 == 16b1 & cmpleout2 == 16b1){
+          display = {4d1, 4d8, 4d8, 4d8};
+        }else{
+          display = {4d1, 4d8, 4d4, 4d4};
+        }
+        if (pause == 0){
+          state.d = state.START;
+        }
+        
+      default:
+        alu16.opcode = 6b0;
+        alu16.a = 16b0;
+        alu16.b = 16b0;
+        display = {4d0, 4d0, 4d8, 4d4};
+        if (begintest == 1){
+          state.d = state.ADD;
+          }
+       
+  }
+  opcode = alu16.getOpcode;
+  getA = alu16.getA;
+  getB = alu16.getB;
+  out = alu16.out;
+}
+}

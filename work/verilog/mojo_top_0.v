@@ -28,6 +28,8 @@ module mojo_top_0 (
   
   reg rst;
   
+  reg testtype;
+  
   wire [1-1:0] M_reset_cond_out;
   reg [1-1:0] M_reset_cond_in;
   reset_conditioner_1 reset_cond (
@@ -35,8 +37,117 @@ module mojo_top_0 (
     .in(M_reset_cond_in),
     .out(M_reset_cond_out)
   );
+  wire [1-1:0] M_detectup_out;
+  reg [1-1:0] M_detectup_in;
+  edge_detector_2 detectup (
+    .clk(clk),
+    .in(M_detectup_in),
+    .out(M_detectup_out)
+  );
+  wire [1-1:0] M_detectdown_out;
+  reg [1-1:0] M_detectdown_in;
+  edge_detector_2 detectdown (
+    .clk(clk),
+    .in(M_detectdown_in),
+    .out(M_detectdown_out)
+  );
+  wire [1-1:0] M_detectmid_out;
+  reg [1-1:0] M_detectmid_in;
+  edge_detector_2 detectmid (
+    .clk(clk),
+    .in(M_detectmid_in),
+    .out(M_detectmid_out)
+  );
+  wire [1-1:0] M_buttonup_out;
+  button_conditioner_5 buttonup (
+    .clk(clk),
+    .in(io_button[0+0-:1]),
+    .out(M_buttonup_out)
+  );
+  wire [1-1:0] M_buttondown_out;
+  button_conditioner_5 buttondown (
+    .clk(clk),
+    .in(io_button[2+0-:1]),
+    .out(M_buttondown_out)
+  );
+  wire [1-1:0] M_buttonmid_out;
+  button_conditioner_5 buttonmid (
+    .clk(clk),
+    .in(io_button[1+0-:1]),
+    .out(M_buttonmid_out)
+  );
+  wire [7-1:0] M_seg_seg;
+  wire [4-1:0] M_seg_sel;
+  reg [16-1:0] M_seg_values;
+  multi_seven_seg_8 seg (
+    .clk(clk),
+    .rst(rst),
+    .values(M_seg_values),
+    .seg(M_seg_seg),
+    .sel(M_seg_sel)
+  );
+  
+  wire [16-1:0] M_manualtest_display;
+  wire [6-1:0] M_manualtest_opcode;
+  wire [16-1:0] M_manualtest_getA;
+  wire [16-1:0] M_manualtest_getB;
+  wire [16-1:0] M_manualtest_out;
+  manualtest_9 manualtest (
+    .clk(clk),
+    .rst(rst),
+    .buttonA(io_button[0+0-:1]),
+    .buttonB(io_button[2+0-:1]),
+    .store_or_show(io_dip[16+6+0-:1]),
+    .switchpart1(io_dip[8+0+7-:8]),
+    .switchpart0(io_dip[0+0+7-:8]),
+    .next(io_button[4+0-:1]),
+    .previous(io_button[3+0-:1]),
+    .display(M_manualtest_display),
+    .opcode(M_manualtest_opcode),
+    .getA(M_manualtest_getA),
+    .getB(M_manualtest_getB),
+    .out(M_manualtest_out)
+  );
+  
+  wire [16-1:0] M_autotest_display;
+  wire [6-1:0] M_autotest_opcode;
+  wire [16-1:0] M_autotest_getA;
+  wire [16-1:0] M_autotest_getB;
+  wire [16-1:0] M_autotest_out;
+  autotest_10 autotest (
+    .clk(clk),
+    .rst(rst),
+    .pause(io_dip[16+6+0-:1]),
+    .begintest(io_button[1+0-:1]),
+    .display(M_autotest_display),
+    .opcode(M_autotest_opcode),
+    .getA(M_autotest_getA),
+    .getB(M_autotest_getB),
+    .out(M_autotest_out)
+  );
+  
+  
+  localparam A_manualstate = 2'd0;
+  localparam B_manualstate = 2'd1;
+  localparam OUT_manualstate = 2'd2;
+  
+  reg [1:0] M_manualstate_d, M_manualstate_q = A_manualstate;
+  
+  
+  localparam BLANK_autostate = 2'd0;
+  localparam SHOWA_autostate = 2'd1;
+  localparam SHOWB_autostate = 2'd2;
+  localparam OUT_autostate = 2'd3;
+  
+  reg [1:0] M_autostate_d, M_autostate_q = BLANK_autostate;
   
   always @* begin
+    M_manualstate_d = M_manualstate_q;
+    M_autostate_d = M_autostate_q;
+    
+    M_detectup_in = M_buttonup_out;
+    M_detectdown_in = M_buttondown_out;
+    M_detectmid_in = M_buttonmid_out;
     M_reset_cond_in = ~rst_n;
     rst = M_reset_cond_out;
     led = 8'h00;
@@ -46,5 +157,193 @@ module mojo_top_0 (
     io_led = 24'h000000;
     io_seg = 8'hff;
     io_sel = 4'hf;
+    M_seg_values = 16'h0000;
+    io_seg = ~M_seg_seg;
+    io_sel = ~M_seg_sel;
+    testtype = io_dip[16+7+0-:1];
+    if (testtype == 1'h1) begin
+      M_seg_values = M_autotest_display;
+      io_led[16+0+5-:6] = M_autotest_opcode;
+      
+      case (M_autostate_q)
+        BLANK_autostate: begin
+          io_led[8+0+7-:8] = 6'h00;
+          io_led[0+0+7-:8] = 6'h00;
+          if (!(M_detectup_out == 1'h1 & M_detectdown_out == 1'h1) & !(M_detectup_out == 1'h1 & M_detectmid_out == 1'h1) & !(M_detectmid_out == 1'h1 & M_detectdown_out == 1'h1)) begin
+            if (M_detectdown_out == 1'h1) begin
+              M_autostate_d = SHOWB_autostate;
+            end else begin
+              if (M_detectup_out == 1'h1) begin
+                M_autostate_d = SHOWA_autostate;
+              end else begin
+                if (M_detectmid_out == 1'h1) begin
+                  M_autostate_d = OUT_autostate;
+                end
+              end
+            end
+          end
+        end
+        SHOWA_autostate: begin
+          io_led[8+0+7-:8] = M_autotest_getA[8+7-:8];
+          io_led[0+0+7-:8] = M_autotest_getA[0+7-:8];
+          if (!(M_detectup_out == 1'h1 & M_detectdown_out == 1'h1) & !(M_detectup_out == 1'h1 & M_detectmid_out == 1'h1) & !(M_detectmid_out == 1'h1 & M_detectdown_out == 1'h1)) begin
+            if (M_detectdown_out == 1'h1) begin
+              M_autostate_d = SHOWB_autostate;
+            end else begin
+              if (M_detectup_out == 1'h1) begin
+                M_autostate_d = BLANK_autostate;
+              end else begin
+                if (M_detectmid_out == 1'h1) begin
+                  M_autostate_d = OUT_autostate;
+                end
+              end
+            end
+          end
+        end
+        SHOWB_autostate: begin
+          io_led[8+0+7-:8] = M_autotest_getB[8+7-:8];
+          io_led[0+0+7-:8] = M_autotest_getB[0+7-:8];
+          if (!(M_detectup_out == 1'h1 & M_detectdown_out == 1'h1) & !(M_detectup_out == 1'h1 & M_detectmid_out == 1'h1) & !(M_detectmid_out == 1'h1 & M_detectdown_out == 1'h1)) begin
+            if (M_detectdown_out == 1'h1) begin
+              M_autostate_d = BLANK_autostate;
+            end else begin
+              if (M_detectup_out == 1'h1) begin
+                M_autostate_d = SHOWA_autostate;
+              end else begin
+                if (M_detectmid_out == 1'h1) begin
+                  M_autostate_d = OUT_autostate;
+                end
+              end
+            end
+          end
+        end
+        OUT_autostate: begin
+          io_led[8+0+7-:8] = M_autotest_out[8+7-:8];
+          io_led[0+0+7-:8] = M_autotest_out[0+7-:8];
+          if (!(M_detectup_out == 1'h1 & M_detectdown_out == 1'h1) & !(M_detectup_out == 1'h1 & M_detectmid_out == 1'h1) & !(M_detectmid_out == 1'h1 & M_detectdown_out == 1'h1)) begin
+            if (M_detectdown_out == 1'h1) begin
+              M_autostate_d = SHOWB_autostate;
+            end else begin
+              if (M_detectup_out == 1'h1) begin
+                M_autostate_d = SHOWA_autostate;
+              end else begin
+                if (M_detectmid_out == 1'h1) begin
+                  M_autostate_d = BLANK_autostate;
+                end
+              end
+            end
+          end
+        end
+        default: begin
+          io_led[8+0+7-:8] = 6'h00;
+          io_led[0+0+7-:8] = 6'h00;
+          if (!(M_detectup_out == 1'h1 & M_detectdown_out == 1'h1) & !(M_detectup_out == 1'h1 & M_detectmid_out == 1'h1) & !(M_detectmid_out == 1'h1 & M_detectdown_out == 1'h1)) begin
+            if (M_detectdown_out == 1'h1) begin
+              M_autostate_d = SHOWB_autostate;
+            end else begin
+              if (M_detectup_out == 1'h1) begin
+                M_autostate_d = SHOWA_autostate;
+              end else begin
+                if (M_detectmid_out == 1'h1) begin
+                  M_autostate_d = OUT_autostate;
+                end
+              end
+            end
+          end
+        end
+      endcase
+    end else begin
+      M_seg_values = M_manualtest_display;
+      io_led[16+0+5-:6] = M_manualtest_opcode;
+      
+      case (M_manualstate_q)
+        A_manualstate: begin
+          io_led[8+0+7-:8] = M_manualtest_getA[8+7-:8];
+          io_led[0+0+7-:8] = M_manualtest_getA[0+7-:8];
+          if (!(io_button[0+0-:1] == 1'h1 & io_button[2+0-:1] == 1'h1) & !(io_button[0+0-:1] == 1'h1 & io_button[1+0-:1] == 1'h1) & !(io_button[1+0-:1] == 1'h1 & io_button[2+0-:1] == 1'h1)) begin
+            if (io_button[2+0-:1] == 1'h1) begin
+              M_manualstate_d = B_manualstate;
+            end else begin
+              if (io_button[1+0-:1] == 1'h1) begin
+                M_manualstate_d = OUT_manualstate;
+              end else begin
+                if (io_button[0+0-:1] == 1'h1) begin
+                  M_manualstate_d = A_manualstate;
+                end
+              end
+            end
+          end
+        end
+        B_manualstate: begin
+          io_led[8+0+7-:8] = M_manualtest_getB[8+7-:8];
+          io_led[0+0+7-:8] = M_manualtest_getB[0+7-:8];
+          if (!(io_button[0+0-:1] == 1'h1 & io_button[2+0-:1] == 1'h1) & !(io_button[0+0-:1] == 1'h1 & io_button[1+0-:1] == 1'h1) & !(io_button[1+0-:1] == 1'h1 & io_button[2+0-:1] == 1'h1)) begin
+            if (io_button[2+0-:1] == 1'h1) begin
+              M_manualstate_d = B_manualstate;
+            end else begin
+              if (io_button[1+0-:1] == 1'h1) begin
+                M_manualstate_d = OUT_manualstate;
+              end else begin
+                if (io_button[0+0-:1] == 1'h1) begin
+                  M_manualstate_d = A_manualstate;
+                end
+              end
+            end
+          end
+        end
+        OUT_manualstate: begin
+          io_led[8+0+7-:8] = M_manualtest_out[8+7-:8];
+          io_led[0+0+7-:8] = M_manualtest_out[0+7-:8];
+          if (!(io_button[0+0-:1] == 1'h1 & io_button[2+0-:1] == 1'h1) & !(io_button[0+0-:1] == 1'h1 & io_button[1+0-:1] == 1'h1) & !(io_button[1+0-:1] == 1'h1 & io_button[2+0-:1] == 1'h1)) begin
+            if (io_button[2+0-:1] == 1'h1) begin
+              M_manualstate_d = B_manualstate;
+            end else begin
+              if (io_button[1+0-:1] == 1'h1) begin
+                M_manualstate_d = OUT_manualstate;
+              end else begin
+                if (io_button[0+0-:1] == 1'h1) begin
+                  M_manualstate_d = A_manualstate;
+                end
+              end
+            end
+          end
+        end
+        default: begin
+          io_led[8+0+7-:8] = 6'h00;
+          io_led[0+0+7-:8] = 6'h00;
+          if (!(io_button[0+0-:1] == 1'h1 & io_button[2+0-:1] == 1'h1) & !(io_button[0+0-:1] == 1'h1 & io_button[1+0-:1] == 1'h1) & !(io_button[1+0-:1] == 1'h1 & io_button[2+0-:1] == 1'h1)) begin
+            if (io_button[2+0-:1] == 1'h1) begin
+              M_manualstate_d = B_manualstate;
+            end else begin
+              if (io_button[1+0-:1] == 1'h1) begin
+                M_manualstate_d = OUT_manualstate;
+              end else begin
+                if (io_button[0+0-:1] == 1'h1) begin
+                  M_manualstate_d = A_manualstate;
+                end
+              end
+            end
+          end
+        end
+      endcase
+    end
   end
+  
+  always @(posedge clk) begin
+    if (rst == 1'b1) begin
+      M_manualstate_q <= 1'h0;
+    end else begin
+      M_manualstate_q <= M_manualstate_d;
+    end
+  end
+  
+  
+  always @(posedge clk) begin
+    if (rst == 1'b1) begin
+      M_autostate_q <= 1'h0;
+    end else begin
+      M_autostate_q <= M_autostate_d;
+    end
+  end
+  
 endmodule

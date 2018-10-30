@@ -8,8 +8,8 @@ Executing edif2ngd -quiet "mojo_top_0.edf" "_ngo/mojo_top_0.ngo"
 Release 14.7 - edif2ngd P.20131013 (lin64)
 Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
 Reading NGO file
-"/home/ubuntu/Desktop/50-002-mojo-alu/work/planAhead/ALU16/ALU16.runs/impl_1/_ng
-o/mojo_top_0.ngo" ...
+"/home/samsonyubaijian/mojo/50-002-mojo-alu/work/planAhead/ALU16/ALU16.runs/impl
+_1/_ngo/mojo_top_0.ngo" ...
 Gathering constraint information from source properties...
 Done.
 
@@ -31,10 +31,10 @@ NGDBUILD Design Results Summary:
   Number of errors:     0
   Number of warnings:   0
 
-Total memory usage is 411460 kilobytes
+Total memory usage is 417976 kilobytes
 
 Writing NGD file "mojo_top_0.ngd" ...
-Total REAL time to NGDBUILD completion:  6 sec
-Total CPU time to NGDBUILD completion:   2 sec
+Total REAL time to NGDBUILD completion:  11 sec
+Total CPU time to NGDBUILD completion:   3 sec
 
 Writing NGDBUILD log file "mojo_top_0.bld"...

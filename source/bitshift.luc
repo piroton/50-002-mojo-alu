@@ -7,7 +7,6 @@ module bitshift (
 
   always {
     case(opcode[1:0]){
-    // note that we only pick 4 bit shift because 16-bit number, 1111 represents 15 bits
       b00: // shift left
         z = a << b[3:0];
       b01: // shift right
@@ -15,7 +14,7 @@ module bitshift (
       b11: // shift right arithmetic
         z = $signed(a) >>> b[3:0];
       b10: // weird left bitshift
-        z = $signed(a) <<< b[3:0];
+        z = $signed(a) <<< b[3:0];        
       default:
         z = a;
     }
